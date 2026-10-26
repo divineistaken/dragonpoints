@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="OMEN">
+  <defs>
+    <linearGradient id="omen-gold" x1="34" y1="26" x2="206" y2="218" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff8a5c"/>
+      <stop offset=".48" stop-color="#f5b942"/>
+      <stop offset="1" stop-color="#e2603a"/>
+    </linearGradient>
+    <radialGradient id="omen-halo" cx=".5" cy=".5" r=".5">
+      <stop stop-color="#f5b942" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#f5b942" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="120" cy="118" r="98" fill="url(#omen-halo)" opacity=".8"/>
+  <g fill="none" stroke="url(#omen-gold)">
+    <circle cx="120" cy="118" r="84" stroke-width="2" opacity=".3" stroke-dasharray="2 12"/>
+    <circle cx="120" cy="118" r="68" stroke-width="9" stroke-linecap="round"/>
+  </g>
+  <path fill="url(#omen-gold)" d="M120 50c21 28 30 50 30 71 0 27-13 48-30 61-17-13-30-34-30-61 0-21 9-43 30-71Z"/>
+  <path fill="#0c0a09" d="M120 79c8 20 11 35 11 46 0 14-4 27-11 38-7-11-11-24-11-38 0-11 3-26 11-46Z"/>
+  <path fill="url(#omen-gold)" opacity=".9" d="M63 81c-9-16-23-23-34-17 10 9 15 21 15 35l20 8c-2-9-2-18-1-26Zm114 0c9-16 23-23 34-17-10 9-15 21-15 35l-20 8c2-9 2-18 1-26Z"/>
+  <circle cx="120" cy="196" r="3" fill="#f5b942" opacity=".65"/>
+</svg>

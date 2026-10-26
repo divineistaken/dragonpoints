@@ -43,6 +43,8 @@ async function init() {
   wireHelpModal();
   window.addEventListener("hashchange", handleRoute);
   window.addEventListener("keydown", handleGlobalKeys);
+  view.addEventListener("pointermove", handleLandingPointer);
+  view.addEventListener("pointerleave", resetLandingTilt);
 
   try {
     state.data = await loadData();
@@ -59,13 +61,17 @@ function applyMeta() {
   const shortSeason = meta.season.split("·")[0].trim();
   seasonChip.textContent = shortSeason;
   seasonChip.title = meta.season;
-  document.title = `${meta.guild} points · DragonPoints`;
 
   const edit = window.DP_CONFIG && window.DP_CONFIG.editUrl;
   const updated = `<span title="${esc(fmtDate(meta.updatedAt, { dateStyle: "medium", timeStyle: "short" }))}">Updated ${esc(timeAgo(meta.updatedAt))}</span>`;
-  footerMeta.innerHTML = `${esc(meta.guild)} · ${state.data.members.length} members · ${updated}${
+  footerMeta.innerHTML = `${esc(meta.guild)} ledger · ${state.data.members.length} members · ${updated}${
     edit ? ` · <a href="${esc(edit)}" target="_blank" rel="noopener noreferrer">Edit ledger</a>` : ""
   }`;
+}
+
+function discordInvite() {
+  const url = window.DP_CONFIG && window.DP_CONFIG.discordUrl;
+  return url || "https://discord.gg/";
 }
 
 /* ── Routing ──────────────────────────────────────────────────────────── */
@@ -93,11 +99,15 @@ function handleRoute() {
   });
 
   let html;
-  let title = "DragonPoints";
+  let title = "OMEN";
   switch (route.name) {
     case "home":
-      html = homeView();
-      title = `${state.data.meta.guild} points · DragonPoints`;
+      html = landingView();
+      title = "OMEN — Only the best";
+      break;
+    case "points":
+      html = pointsView();
+      title = `Points overview · ${state.data.meta.guild}`;
       break;
     case "leaderboard":
       html = leaderboardView(route);
@@ -105,7 +115,7 @@ function handleRoute() {
       break;
     case "member":
       html = profileView(route.id);
-      title = `${route.id} · DragonPoints`;
+      title = `${route.id} · ${state.data.meta.guild}`;
       break;
     case "achievements":
       html = achievementsView();
@@ -117,7 +127,7 @@ function handleRoute() {
       break;
     default:
       html = notFoundView();
-      title = "Not found · DragonPoints";
+      title = "Not found · OMEN";
   }
 
   view.innerHTML = html;
@@ -147,6 +157,29 @@ function handleGlobalKeys(event) {
 function isTyping(el) {
   if (!el) return false;
   return el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable;
+}
+
+function handleLandingPointer(event) {
+  if (!state.route || state.route.name !== "home") return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const mark = view.querySelector(".omen-mark");
+  if (!mark) return;
+  const rect = mark.getBoundingClientRect();
+  const dx = Math.max(-1, Math.min(1, ((event.clientX - rect.left) / rect.width - 0.5) * 2));
+  const dy = Math.max(-1, Math.min(1, ((event.clientY - rect.top) / rect.height - 0.5) * 2));
+  mark.style.setProperty("--mx", `${(dx * 9).toFixed(2)}px`);
+  mark.style.setProperty("--my", `${(dy * 9).toFixed(2)}px`);
+  mark.style.setProperty("--ry", `${(dx * 7).toFixed(2)}deg`);
+  mark.style.setProperty("--rx", `${(-dy * 7).toFixed(2)}deg`);
+}
+
+function resetLandingTilt() {
+  const mark = view.querySelector(".omen-mark");
+  if (!mark) return;
+  mark.style.setProperty("--mx", "0px");
+  mark.style.setProperty("--my", "0px");
+  mark.style.setProperty("--ry", "0deg");
+  mark.style.setProperty("--rx", "0deg");
 }
 
 /* ── Shared fragments ─────────────────────────────────────────────────── */
@@ -334,7 +367,71 @@ function emptyRow(message) {
 
 /* ── Views ────────────────────────────────────────────────────────────── */
 
-function homeView() {
+function omenMark() {
+  return `<div class="omen-mark" aria-hidden="true">
+    <span class="omen-pulse"></span>
+    <div class="omen-mark-inner">
+      <svg viewBox="0 0 240 240" role="presentation">
+        <defs>
+          <linearGradient id="omen-lg-gold" x1="34" y1="26" x2="206" y2="218" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#ff8a5c"/>
+            <stop offset=".48" stop-color="#f5b942"/>
+            <stop offset="1" stop-color="#e2603a"/>
+          </linearGradient>
+          <radialGradient id="omen-lg-halo" cx=".5" cy=".5" r=".5">
+            <stop stop-color="#f5b942" stop-opacity=".5"/>
+            <stop offset="1" stop-color="#f5b942" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <circle class="mark-halo" cx="120" cy="118" r="98" fill="url(#omen-lg-halo)"/>
+        <g fill="none" stroke="url(#omen-lg-gold)">
+          <circle class="mark-dashed" cx="120" cy="118" r="84" stroke-width="2" opacity=".32" stroke-dasharray="2 12"/>
+          <circle class="mark-ring" cx="120" cy="118" r="68" stroke-width="9" stroke-linecap="round"/>
+        </g>
+        <path class="mark-eye" fill="url(#omen-lg-gold)" d="M120 50c21 28 30 50 30 71 0 27-13 48-30 61-17-13-30-34-30-61 0-21 9-43 30-71Z"/>
+        <path class="mark-slit" fill="#0c0a09" d="M120 79c8 20 11 35 11 46 0 14-4 27-11 38-7-11-11-24-11-38 0-11 3-26 11-46Z"/>
+        <path class="mark-horns" fill="url(#omen-lg-gold)" opacity=".9" d="M63 81c-9-16-23-23-34-17 10 9 15 21 15 35l20 8c-2-9-2-18-1-26Zm114 0c9-16 23-23 34-17-10 9-15 21-15 35l-20 8c2-9 2-18 1-26Z"/>
+        <circle class="mark-spark" cx="120" cy="196" r="3" fill="#f5b942"/>
+      </svg>
+    </div>
+  </div>`;
+}
+
+function embers() {
+  return Array.from({ length: 18 }, (_, index) => {
+    const left = (index * 37 + 9) % 100;
+    const duration = 7 + (index % 7) * 1.4;
+    const delay = -(index * 1.1);
+    const size = 2 + (index % 3);
+    const drift = (index % 2 === 0 ? 1 : -1) * (12 + (index % 5) * 9);
+    return `<span class="ember" style="--x:${left}%;--dur:${duration}s;--delay:${delay}s;--size:${size}px;--drift:${drift}px"></span>`;
+  }).join("");
+}
+
+function landingView() {
+  const { meta } = state.data;
+  const season = meta.season.split("·")[0].trim();
+  return `<section class="landing">
+    <div class="landing-aura" aria-hidden="true"></div>
+    <div class="landing-embers" aria-hidden="true">${embers()}</div>
+    <div class="landing-inner">
+      ${omenMark()}
+      <h1 class="landing-name" aria-label="OMEN"><span>O</span><span>M</span><span>E</span><span>N</span></h1>
+      <p class="landing-tagline"><span class="tag-o">O</span>nly the best</p>
+      <p class="landing-desc">An invite-only guild of sharp players and late-night strategists. One ledger, one standard — never settle for second.</p>
+      <div class="landing-actions">
+        <a class="discord-btn" href="${esc(discordInvite())}" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.3.5c1.7.4 3.2 1 4.6 1.8a18.2 18.2 0 0 0-15.4 0c1.4-.9 3-1.5 4.7-1.9L8.6 3a19.8 19.8 0 0 0-4.9 1.5C.5 9-.3 13.5.1 18c1.9 1.4 3.9 2.4 5.9 3.1l.5-.8c-.7-.3-1.3-.6-1.9-1l.1-.1c3.9 1.8 8.2 1.8 12.1 0l.1.1c-.6.4-1.2.7-1.9 1l.5.8c2-.7 4-1.7 5.9-3.1.5-5.2-.8-9.7-3.5-13.6ZM8 15.3c-1.2 0-2.2-1.1-2.2-2.4 0-1.3 1-2.4 2.2-2.4 1.2 0 2.2 1.1 2.2 2.4 0 1.3-1 2.4-2.2 2.4Zm8 0c-1.2 0-2.2-1.1-2.2-2.4 0-1.3 1-2.4 2.2-2.4 1.2 0 2.2 1.1 2.2 2.4 0 1.3-1 2.4-2.2 2.4Z"/></svg>
+          Join OMEN
+        </a>
+      </div>
+      <a class="landing-ledger" href="#/points">Enter the points ledger <span aria-hidden="true">→</span></a>
+    </div>
+    <p class="landing-season">${esc(season)} · invite only</p>
+  </section>`;
+}
+
+function pointsView() {
   const data = state.data;
   const allTime = ranked(data, "total");
   const monthly = ranked(data, "month");

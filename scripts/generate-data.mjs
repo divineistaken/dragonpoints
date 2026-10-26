@@ -130,7 +130,7 @@ const now = new Date("2026-10-25T18:00:00Z");
 
 const data = {
   meta: {
-    guild: "Dragon's Keep",
+    guild: "OMEN",
     season: "Season 4 · Emberfall",
     seasonStart: "2026-08-01",
     seasonEnds: "2026-12-01",
