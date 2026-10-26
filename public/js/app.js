@@ -30,6 +30,11 @@ const view = document.getElementById("view");
 const seasonChip = document.getElementById("season-chip");
 const footerMeta = document.getElementById("footer-meta");
 const helpModal = document.getElementById("help-modal");
+const unlockModal = document.getElementById("unlock-modal");
+
+const config = window.DP_CONFIG || {};
+const SNEAK_PEEK = Boolean(config.sneakPeek);
+const OWNER_KEY = "omen_owner_access";
 
 const state = {
   data: null,
@@ -37,10 +42,38 @@ const state = {
   lastKey: "",
 };
 
+let ownerSession = false;
+let pendingHash = "";
+
+/* ── Access gate ──────────────────────────────────────────────────────── */
+
+function hasOwnerAccess() {
+  if (!SNEAK_PEEK) return true;
+  if (ownerSession) return true;
+  try {
+    return localStorage.getItem(OWNER_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function isLocked() {
+  return SNEAK_PEEK && !hasOwnerAccess();
+}
+
+function applyAccessState() {
+  const locked = isLocked();
+  document.body.classList.toggle("peek", locked);
+  const lockBtn = document.getElementById("lock-btn");
+  if (lockBtn) lockBtn.hidden = !(SNEAK_PEEK && !locked);
+}
+
 /* ── Boot ─────────────────────────────────────────────────────────────── */
 
 async function init() {
   wireHelpModal();
+  wireUnlockModal();
+  applyAccessState();
   window.addEventListener("hashchange", handleRoute);
   window.addEventListener("keydown", handleGlobalKeys);
   view.addEventListener("pointermove", handleLandingPointer);
@@ -89,8 +122,22 @@ function parseRoute() {
 
 function handleRoute() {
   if (!state.data) return;
-  const route = parseRoute();
+  let route = parseRoute();
+
+  if (isLocked() && route.name !== "home") {
+    pendingHash = location.hash || "#/points";
+    history.replaceState(null, "", "#/");
+    route = parseRoute();
+    openUnlock();
+  }
+
+  if (!isLocked() && route.name === "owner") {
+    location.replace("#/points");
+    return;
+  }
+
   state.route = route;
+  applyAccessState();
 
   const navKey = route.name === "member" ? "leaderboard" : route.name;
   document.querySelectorAll("[data-nav]").forEach((link) => {
@@ -144,6 +191,12 @@ function handleRoute() {
 }
 
 function handleGlobalKeys(event) {
+  if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "o") {
+    event.preventDefault();
+    if (isLocked()) openUnlock();
+    else location.hash = "#/points";
+    return;
+  }
   if (event.key === "/" && !isTyping(event.target)) {
     const search = document.getElementById("member-search");
     if (search) {
@@ -838,6 +891,134 @@ function renderLoadError(error) {
 
 let lastFocused = null;
 
+async function sha256Hex(value) {
+  if (!window.crypto || !window.crypto.subtle) throw new Error("Web Crypto unavailable");
+  const digest = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function setUnlockError(message) {
+  const error = document.getElementById("unlock-error");
+  const input = document.getElementById("unlock-pass");
+  if (error) {
+    error.textContent = message || "";
+    error.hidden = !message;
+  }
+  if (input) {
+    input.classList.toggle("invalid", Boolean(message));
+    if (message) {
+      input.focus();
+      input.select();
+    }
+  }
+}
+
+function wireUnlockModal() {
+  const lockBtn = document.getElementById("lock-btn");
+  if (lockBtn) lockBtn.addEventListener("click", lockOwnerView);
+  if (!unlockModal) return;
+
+  unlockModal.addEventListener("click", (event) => {
+    if (event.target.closest("[data-close-unlock]")) closeUnlock();
+  });
+
+  const form = document.getElementById("unlock-form");
+  if (form) form.addEventListener("submit", submitUnlock);
+
+  document.addEventListener("keydown", (event) => {
+    if (unlockModal.hidden) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeUnlock();
+    }
+    if (event.key === "Tab") trapFocus(event, unlockModal);
+  });
+}
+
+function openUnlock() {
+  if (!unlockModal || !isLocked()) return;
+  unlockModal.hidden = false;
+  document.body.style.overflow = "hidden";
+  setUnlockError("");
+  const input = document.getElementById("unlock-pass");
+  if (input) {
+    input.value = "";
+    setTimeout(() => input.focus(), 30);
+  }
+}
+
+function closeUnlock() {
+  if (!unlockModal) return;
+  unlockModal.hidden = true;
+  document.body.style.overflow = "";
+  setUnlockError("");
+  pendingHash = "";
+}
+
+async function submitUnlock(event) {
+  event.preventDefault();
+  if (isLocked() === false) {
+    closeUnlock();
+    return;
+  }
+  const form = event.currentTarget;
+  const input = document.getElementById("unlock-pass");
+  const button = form.querySelector('button[type="submit"]');
+  const passphrase = input ? input.value.trim() : "";
+  if (!passphrase) {
+    setUnlockError("Enter the passphrase to continue.");
+    return;
+  }
+
+  const label = button ? button.textContent : "";
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Checking…";
+  }
+  setUnlockError("");
+
+  try {
+    const hash = await sha256Hex(passphrase);
+    const expected = String(config.ownerHash || "").toLowerCase();
+    if (expected && hash === expected) {
+      ownerSession = true;
+      try {
+        localStorage.setItem(OWNER_KEY, "1");
+      } catch {
+        /* session-only access */
+      }
+      const target = !pendingHash || pendingHash === "#/owner" ? "#/points" : pendingHash;
+      pendingHash = "";
+      closeUnlock();
+      applyAccessState();
+      state.lastKey = "";
+      if (location.hash !== target) location.hash = target;
+      else handleRoute();
+    } else {
+      await new Promise((resolve) => setTimeout(resolve, 450));
+      setUnlockError("That passphrase does not match.");
+    }
+  } catch {
+    setUnlockError("Could not verify on this browser.");
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = label;
+    }
+  }
+}
+
+function lockOwnerView() {
+  ownerSession = false;
+  try {
+    localStorage.removeItem(OWNER_KEY);
+  } catch {
+    /* ignore */
+  }
+  location.hash = "#/";
+  location.reload();
+}
+
 function wireHelpModal() {
   const openBtn = document.getElementById("help-btn");
   if (!openBtn || !helpModal) return;
@@ -869,8 +1050,8 @@ function closeHelp() {
   if (lastFocused && typeof lastFocused.focus === "function") lastFocused.focus();
 }
 
-function trapFocus(event) {
-  const focusable = helpModal.querySelectorAll('button, [href], input, [tabindex]:not([tabindex="-1"])');
+function trapFocus(event, modal = helpModal) {
+  const focusable = modal.querySelectorAll('button, [href], input, [tabindex]:not([tabindex="-1"])');
   if (!focusable.length) return;
   const first = focusable[0];
   const last = focusable[focusable.length - 1];

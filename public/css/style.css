@@ -1325,6 +1325,37 @@ tbody tr[hidden] { display: none; }
 .help-list { padding-left: 20px; display: flex; flex-direction: column; gap: 10px; color: var(--muted); font-size: .87rem; }
 .help-list strong { color: var(--ink); }
 .help-foot { margin: 18px 0; font-size: .78rem; color: var(--faint); }
+
+.modal-lede { color: var(--muted); font-size: .86rem; margin: -8px 0 18px; line-height: 1.6; }
+.text-input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: .9rem;
+  transition: border-color .15s;
+}
+.text-input::placeholder { color: var(--faint); }
+.text-input:focus { outline: none; border-color: var(--gold); }
+.text-input.invalid { border-color: var(--danger); animation: input-shake .32s ease; }
+.unlock-error { margin-top: 9px; color: var(--danger); font-size: .78rem; }
+.unlock-submit { width: 100%; margin-top: 14px; padding: 10px 16px; }
+@keyframes input-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  55% { transform: translateX(4px); }
+  80% { transform: translateX(-2px); }
+}
+
+/* Sneak peek: visitors only see the landing. */
+body.peek .main-nav,
+body.peek #help-btn,
+body.peek .season-chip,
+body.peek #lock-btn,
+body.peek .footer-meta,
+body.peek .landing-ledger { display: none !important; }
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(10px) scale(.985); } }
 

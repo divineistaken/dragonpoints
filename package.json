@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "data": "node scripts/generate-data.mjs"
+    "data": "node scripts/generate-data.mjs",
+    "pass": "node scripts/hash-pass.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
