@@ -421,31 +421,11 @@ function emptyRow(message) {
 /* ── Views ────────────────────────────────────────────────────────────── */
 
 function omenMark() {
-  return `<div class="omen-mark" aria-hidden="true">
-    <span class="omen-pulse"></span>
+  return `<div class="omen-mark">
+    <span class="omen-orbit" aria-hidden="true"></span>
+    <span class="omen-pulse" aria-hidden="true"></span>
     <div class="omen-mark-inner">
-      <svg viewBox="0 0 240 240" role="presentation">
-        <defs>
-          <linearGradient id="omen-lg-gold" x1="34" y1="26" x2="206" y2="218" gradientUnits="userSpaceOnUse">
-            <stop stop-color="#ff8a5c"/>
-            <stop offset=".48" stop-color="#f5b942"/>
-            <stop offset="1" stop-color="#e2603a"/>
-          </linearGradient>
-          <radialGradient id="omen-lg-halo" cx=".5" cy=".5" r=".5">
-            <stop stop-color="#f5b942" stop-opacity=".5"/>
-            <stop offset="1" stop-color="#f5b942" stop-opacity="0"/>
-          </radialGradient>
-        </defs>
-        <circle class="mark-halo" cx="120" cy="118" r="98" fill="url(#omen-lg-halo)"/>
-        <g fill="none" stroke="url(#omen-lg-gold)">
-          <circle class="mark-dashed" cx="120" cy="118" r="84" stroke-width="2" opacity=".32" stroke-dasharray="2 12"/>
-          <circle class="mark-ring" cx="120" cy="118" r="68" stroke-width="9" stroke-linecap="round"/>
-        </g>
-        <path class="mark-eye" fill="url(#omen-lg-gold)" d="M120 50c21 28 30 50 30 71 0 27-13 48-30 61-17-13-30-34-30-61 0-21 9-43 30-71Z"/>
-        <path class="mark-slit" fill="#0c0a09" d="M120 79c8 20 11 35 11 46 0 14-4 27-11 38-7-11-11-24-11-38 0-11 3-26 11-46Z"/>
-        <path class="mark-horns" fill="url(#omen-lg-gold)" opacity=".9" d="M63 81c-9-16-23-23-34-17 10 9 15 21 15 35l20 8c-2-9-2-18-1-26Zm114 0c9-16 23-23 34-17-10 9-15 21-15 35l-20 8c2-9 2-18 1-26Z"/>
-        <circle class="mark-spark" cx="120" cy="196" r="3" fill="#f5b942"/>
-      </svg>
+      <img class="omen-emblem" src="./img/omen-icon-256.png" alt="OMEN clan crest" width="256" height="256">
     </div>
   </div>`;
 }
@@ -465,17 +445,39 @@ function landingView() {
   const { meta } = state.data;
   const season = meta.season.split("·")[0].trim();
   return `<section class="landing">
+    <div class="landing-art" aria-hidden="true"></div>
     <div class="landing-aura" aria-hidden="true"></div>
     <div class="landing-embers" aria-hidden="true">${embers()}</div>
     <div class="landing-inner">
       ${omenMark()}
+      <p class="landing-kicker">We are</p>
       <h1 class="landing-name" aria-label="OMEN"><span>O</span><span>M</span><span>E</span><span>N</span></h1>
       <p class="landing-tagline"><span class="tag-o">O</span>nly the best</p>
-      <p class="landing-desc">An invite-only guild of sharp players and late-night strategists. One ledger, one standard — never settle for second.</p>
+      <p class="landing-desc">OMEN is where skilled players group up, execute clean strategies, and win.</p>
+
+      <div class="landing-stats">
+        <div class="landing-stat"><strong>31,457</strong><span>peak points</span></div>
+        <div class="landing-stat"><strong>Top 1</strong><span>contest wins</span></div>
+        <div class="landing-stat"><strong>Highest</strong><span>average skill</span></div>
+        <div class="landing-stat"><strong>1,700+</strong><span>community</span></div>
+      </div>
+
+      <ul class="landing-features" aria-label="What OMEN offers">
+        <li>Training system</li>
+        <li>Fair performance ranking</li>
+        <li>Coordinated grinds</li>
+        <li>High-level matches</li>
+        <li>Events</li>
+        <li>Zero drama</li>
+        <li>Always a squad</li>
+      </ul>
+
+      <p class="landing-motto"><span class="motto-label">Play smart</span> Add <strong>[OMEN]</strong> to your name. Queue with us. Win more.</p>
+
       <div class="landing-actions">
         <a class="discord-btn" href="${esc(discordInvite())}" target="_blank" rel="noopener noreferrer">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.3.5c1.7.4 3.2 1 4.6 1.8a18.2 18.2 0 0 0-15.4 0c1.4-.9 3-1.5 4.7-1.9L8.6 3a19.8 19.8 0 0 0-4.9 1.5C.5 9-.3 13.5.1 18c1.9 1.4 3.9 2.4 5.9 3.1l.5-.8c-.7-.3-1.3-.6-1.9-1l.1-.1c3.9 1.8 8.2 1.8 12.1 0l.1.1c-.6.4-1.2.7-1.9 1l.5.8c2-.7 4-1.7 5.9-3.1.5-5.2-.8-9.7-3.5-13.6ZM8 15.3c-1.2 0-2.2-1.1-2.2-2.4 0-1.3 1-2.4 2.2-2.4 1.2 0 2.2 1.1 2.2 2.4 0 1.3-1 2.4-2.2 2.4Zm8 0c-1.2 0-2.2-1.1-2.2-2.4 0-1.3 1-2.4 2.2-2.4 1.2 0 2.2 1.1 2.2 2.4 0 1.3-1 2.4-2.2 2.4Z"/></svg>
-          Join OMEN
+          Join OMEN today
         </a>
       </div>
       <a class="landing-ledger" href="#/points">Enter the points ledger <span aria-hidden="true">→</span></a>
