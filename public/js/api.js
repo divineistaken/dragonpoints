@@ -1,4 +1,4 @@
-const LOCAL_DATA_URL = "./data/dragonpoints.json";
+const LOCAL_DATA_URL = "./data/omenclan.json";
 
 function asNumber(value, fallback = 0) {
   const n = Number(value);

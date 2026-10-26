@@ -152,5 +152,5 @@ const data = {
 };
 
 mkdirSync(resolve(root, "public/data"), { recursive: true });
-writeFileSync(resolve(root, "public/data/dragonpoints.json"), JSON.stringify(data, null, 2) + "\n");
+writeFileSync(resolve(root, "public/data/omenclan.json"), JSON.stringify(data, null, 2) + "\n");
 console.log(`Wrote ${members.length} members, ${achievements.length} achievements, ${polls.length} polls.`);
