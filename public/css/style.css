@@ -1098,11 +1098,37 @@ tbody tr[hidden] { display: none; }
   pointer-events: none;
 }
 
-.storm-canvas {
-  display: block;
+.storm-bolt {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
+  opacity: 0;
+  overflow: visible;
+  will-change: opacity;
 }
+
+.landing.is-storm .storm-bolt {
+  animation: storm-bolt 1.8s ease-out both;
+}
+
+.bolt-layer {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.bolt-outer { stroke: rgba(138, 118, 255, .22); filter: blur(7px); }
+.bolt-outer use { stroke-width: 24; }
+.bolt-outer use.branch { stroke-width: 10; }
+.bolt-violet { stroke: rgba(176, 158, 255, .58); filter: blur(2px); }
+.bolt-violet use { stroke-width: 12; }
+.bolt-violet use.branch { stroke-width: 5; }
+.bolt-gold { stroke: rgba(245, 185, 66, .6); }
+.bolt-gold use { stroke-width: 5.5; }
+.bolt-gold use.branch { stroke-width: 2.4; }
+.bolt-core { stroke: #fff; }
+.bolt-core use { stroke-width: 1.8; }
+.bolt-core use.branch { stroke-width: 0.9; }
 
 .storm-flash {
   position: absolute;
@@ -1110,15 +1136,14 @@ tbody tr[hidden] { display: none; }
   z-index: 2;
   opacity: 0;
   pointer-events: none;
-  mix-blend-mode: screen;
   background:
-    radial-gradient(ellipse 72% 58% at 50% -8%, rgba(232, 228, 255, .95), rgba(166, 148, 255, .5) 34%, rgba(245, 185, 66, .12) 58%, transparent 78%),
-    linear-gradient(180deg, rgba(208, 202, 255, .38), transparent 48%);
+    radial-gradient(ellipse 78% 62% at 50% -10%, rgba(232, 228, 255, .95), rgba(166, 148, 255, .44) 36%, rgba(245, 185, 66, .08) 60%, transparent 80%),
+    linear-gradient(180deg, rgba(208, 202, 255, .28), transparent 50%);
   will-change: opacity;
 }
 
 .landing.is-storm .storm-flash {
-  animation: storm-flash 1.05s ease-out both;
+  animation: storm-flash 1.8s ease-out both;
 }
 
 
@@ -1421,14 +1446,26 @@ tbody tr[hidden] { display: none; }
   70% { opacity: .35; }
   100% { transform: translate3d(var(--drift), -78vh, 0) scale(1.05); opacity: 0; }
 }
+@keyframes storm-bolt {
+  0% { opacity: 0; }
+  4% { opacity: 1; }
+  12% { opacity: .35; }
+  20% { opacity: .95; }
+  32% { opacity: .5; }
+  46% { opacity: .82; }
+  62% { opacity: .28; }
+  78% { opacity: .14; }
+  100% { opacity: 0; }
+}
 @keyframes storm-flash {
   0% { opacity: 0; }
-  3% { opacity: .58; }
-  7% { opacity: .07; }
-  13% { opacity: .48; }
-  20% { opacity: .03; }
-  32% { opacity: .2; }
-  50% { opacity: .04; }
+  3% { opacity: .34; }
+  9% { opacity: .05; }
+  16% { opacity: .28; }
+  25% { opacity: .03; }
+  38% { opacity: .15; }
+  55% { opacity: .05; }
+  75% { opacity: .02; }
   100% { opacity: 0; }
 }
 @keyframes mark-in {

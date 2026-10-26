@@ -447,8 +447,6 @@ function embers() {
 
 let stormTimer = 0;
 let stormFlashTimer = 0;
-let stormRaf = 0;
-let stormResize = null;
 let stormVisibility = null;
 let stormRun = 0;
 
@@ -462,129 +460,92 @@ function stopStorm() {
   stormTimer = 0;
   stormFlashTimer = 0;
   stormRun += 1;
-  if (stormRaf) cancelAnimationFrame(stormRaf);
-  stormRaf = 0;
-  if (stormResize) {
-    stormResize.disconnect();
-    stormResize = null;
-  }
   if (stormVisibility) {
     document.removeEventListener("visibilitychange", stormVisibility);
     stormVisibility = null;
   }
   const landing = view.querySelector(".landing");
   if (landing) landing.classList.remove("is-storm");
+  const storm = view.querySelector(".storm");
+  if (storm) storm.innerHTML = "";
 }
 
-function boltChannel(width, startX, startY, endY, height) {
-  const points = [{ x: startX, y: startY }];
-  let x = startX;
-  let y = startY;
-  let drift = (Math.random() - 0.5) * width * 0.02;
-
-  while (y < endY) {
-    y += height * (0.022 + Math.random() * 0.04);
-    drift = drift * 0.58 + (Math.random() - 0.5) * width * 0.058;
-    x = Math.min(width * 0.94, Math.max(width * 0.06, x + drift));
-    points.push({ x, y });
-  }
-
-  return points;
-}
-
-function forkFrom(origin, width, length, direction, steps) {
-  const points = [{ x: origin.x, y: origin.y }];
-  let x = origin.x;
-  let y = origin.y;
-  for (let step = 1; step <= steps; step += 1) {
-    const spread = width * (0.007 + Math.random() * 0.02) * (1 - step / (steps + 1));
-    x += direction * spread + (Math.random() - 0.5) * width * 0.016;
-    y += (length / steps) * (0.6 + Math.random() * 0.8);
-    points.push({ x, y });
-  }
-  return points;
+function jaggedPath(from, to, displace, depth) {
+  if (depth <= 0) return [to];
+  const mid = {
+    x: (from.x + to.x) / 2 + (Math.random() - 0.5) * displace,
+    y: (from.y + to.y) / 2 + (Math.random() - 0.5) * displace * 0.4,
+  };
+  return [...jaggedPath(from, mid, displace * 0.55, depth - 1), ...jaggedPath(mid, to, displace * 0.55, depth - 1)];
 }
 
 function makeBolt(width, height) {
-  const startX = width * (0.16 + Math.random() * 0.68);
-  const endY = height * (0.46 + Math.random() * 0.32);
-  const main = boltChannel(width, startX, -height * 0.05, endY, height);
+  const startX = width * (0.22 + Math.random() * 0.56);
+  const start = { x: startX, y: -height * 0.05 };
+  const end = { x: startX + (Math.random() - 0.5) * width * 0.42, y: height * (0.48 + Math.random() * 0.28) };
+  const main = [start, ...jaggedPath(start, end, width * 0.12, 6)];
 
   const branches = [];
-  const forks = 2 + Math.floor(Math.random() * 3);
+  const forks = 3 + Math.floor(Math.random() * 3);
   for (let i = 0; i < forks; i += 1) {
-    const origin = main[1 + Math.floor(Math.random() * Math.max(1, main.length - 3))];
+    const origin = main[2 + Math.floor(Math.random() * Math.max(1, main.length - 4))];
+    if (!origin) continue;
     const direction = Math.random() < 0.5 ? -1 : 1;
-    const length = height * (0.07 + Math.random() * 0.16);
-    const points = forkFrom(origin, width, length, direction, 4 + Math.floor(Math.random() * 4));
-    branches.push({ points, weight: 0.55 });
+    const target = {
+      x: origin.x + direction * width * (0.06 + Math.random() * 0.15),
+      y: origin.y + height * (0.08 + Math.random() * 0.16),
+    };
+    const branch = [origin, ...jaggedPath(origin, target, width * 0.04, 4)];
+    branches.push(branch);
 
-    if (Math.random() < 0.55 && points.length > 3) {
-      const subOrigin = points[1 + Math.floor(Math.random() * (points.length - 2))];
-      branches.push({
-        points: forkFrom(subOrigin, width, length * (0.35 + Math.random() * 0.3), Math.random() < 0.5 ? direction : -direction, 3),
-        weight: 0.28,
-      });
+    if (Math.random() < 0.6 && branch.length > 4) {
+      const subOrigin = branch[2 + Math.floor(Math.random() * (branch.length - 4))];
+      const subTarget = {
+        x: subOrigin.x + (Math.random() < 0.5 ? -1 : 1) * width * (0.03 + Math.random() * 0.08),
+        y: subOrigin.y + height * (0.04 + Math.random() * 0.1),
+      };
+      branches.push([subOrigin, ...jaggedPath(subOrigin, subTarget, width * 0.02, 3)]);
     }
   }
 
-  const secondary =
-    Math.random() < 0.45
-      ? boltChannel(width, width * (0.08 + Math.random() * 0.84), -height * 0.04, height * (0.2 + Math.random() * 0.3), height)
-      : null;
-
-  return { main, branches, secondary };
+  return { main, branches };
 }
 
-function strokeBolt(ctx, points, alpha, weight) {
-  ctx.beginPath();
-  ctx.moveTo(points[0].x, points[0].y);
-  for (let i = 1; i < points.length; i += 1) {
-    ctx.lineTo(points[i].x, points[i].y);
-  }
-
-  ctx.globalAlpha = alpha * 0.46;
-  ctx.strokeStyle = "rgba(154, 136, 255, .95)";
-  ctx.lineWidth = 22 * weight;
-  ctx.shadowColor = "rgba(145, 124, 255, 1)";
-  ctx.shadowBlur = 62;
-  ctx.stroke();
-
-  ctx.globalAlpha = alpha * 0.68;
-  ctx.strokeStyle = "rgba(245, 185, 66, .95)";
-  ctx.lineWidth = 10 * weight;
-  ctx.shadowColor = "rgba(245, 185, 66, 1)";
-  ctx.shadowBlur = 36;
-  ctx.stroke();
-
-  ctx.globalAlpha = alpha;
-  ctx.strokeStyle = "rgba(255, 255, 255, 1)";
-  ctx.lineWidth = 3.2 * weight;
-  ctx.shadowColor = "rgba(255, 255, 255, 1)";
-  ctx.shadowBlur = 16;
-  ctx.stroke();
+function pointsToPath(points) {
+  return points
+    .map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`)
+    .join(" ");
 }
 
-function strikeAlpha(time) {
-  const frames = [
-    [0, 0],
-    [20, 1],
-    [90, 0.35],
-    [140, 0.92],
-    [240, 0.2],
-    [360, 0.62],
-    [500, 0.08],
-    [700, 0],
-  ];
-  for (let i = 1; i < frames.length; i += 1) {
-    if (time <= frames[i][0]) {
-      const [prevTime, prevAlpha] = frames[i - 1];
-      const [nextTime, nextAlpha] = frames[i];
-      const progress = (time - prevTime) / (nextTime - prevTime);
-      return prevAlpha + (nextAlpha - prevAlpha) * progress;
-    }
-  }
-  return 0;
+function lightningSvg(width, height) {
+  const { main, branches } = makeBolt(width, height);
+  const source = main[0];
+  const tip = main[main.length - 1];
+  const mainPath = pointsToPath(main);
+  const branchPaths = branches.map((branch) => `<path d="${pointsToPath(branch)}"/>`).join("");
+
+  return `<svg class="storm-bolt" viewBox="0 0 ${width.toFixed(0)} ${height.toFixed(0)}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="storm-crown">
+        <stop offset="0" stop-color="#eae4ff" stop-opacity=".55"/>
+        <stop offset=".4" stop-color="#9a82ff" stop-opacity=".16"/>
+        <stop offset="1" stop-color="#9a82ff" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="storm-tip">
+        <stop offset="0" stop-color="#fff4cf" stop-opacity=".45"/>
+        <stop offset=".45" stop-color="#f5b942" stop-opacity=".12"/>
+        <stop offset="1" stop-color="#f5b942" stop-opacity="0"/>
+      </radialGradient>
+      <g id="storm-main"><path d="${mainPath}"/></g>
+      <g id="storm-branches">${branchPaths}</g>
+    </defs>
+    <ellipse cx="${source.x.toFixed(0)}" cy="0" rx="${(width * 0.34).toFixed(0)}" ry="${(height * 0.28).toFixed(0)}" fill="url(#storm-crown)"/>
+    <g class="bolt-layer bolt-outer"><use href="#storm-main"/><use class="branch" href="#storm-branches"/></g>
+    <g class="bolt-layer bolt-violet"><use href="#storm-main"/><use class="branch" href="#storm-branches"/></g>
+    <g class="bolt-layer bolt-gold"><use href="#storm-main"/><use class="branch" href="#storm-branches"/></g>
+    <g class="bolt-layer bolt-core"><use href="#storm-main"/><use class="branch" href="#storm-branches"/></g>
+    <ellipse cx="${tip.x.toFixed(0)}" cy="${tip.y.toFixed(0)}" rx="${(width * 0.05).toFixed(0)}" ry="${(height * 0.038).toFixed(0)}" fill="url(#storm-tip)"/>
+  </svg>`;
 }
 
 function startStorm() {
@@ -593,67 +554,9 @@ function startStorm() {
 
   const landing = view.querySelector(".landing");
   const storm = landing && landing.querySelector(".storm");
-  const canvas = storm && storm.querySelector(".storm-canvas");
-  if (!landing || !canvas) return;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  const layer = document.createElement("canvas");
-  const layerCtx = layer.getContext("2d");
-  if (!layerCtx) return;
+  if (!landing || !storm) return;
 
   const run = ++stormRun;
-  let width = 1;
-  let height = 1;
-  let dpr = 1;
-  let bolt = null;
-
-  const fit = () => {
-    const rect = storm.getBoundingClientRect();
-    width = Math.max(1, rect.width);
-    height = Math.max(1, rect.height);
-    dpr = Math.min(1.5, window.devicePixelRatio || 1);
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
-    layer.width = canvas.width;
-    layer.height = canvas.height;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.globalCompositeOperation = "source-over";
-    layerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    layerCtx.lineCap = "round";
-    layerCtx.lineJoin = "round";
-    bolt = null;
-  };
-
-  stormResize = new ResizeObserver(fit);
-  stormResize.observe(storm);
-  fit();
-
-  const render = () => {
-    layerCtx.clearRect(0, 0, width, height);
-    if (!bolt) return;
-
-    layerCtx.globalCompositeOperation = "lighter";
-    const source = bolt.main[0];
-    const sheet = layerCtx.createRadialGradient(source.x, 0, 0, source.x, 0, height * 0.75);
-    sheet.addColorStop(0, "rgba(220, 212, 255, .3)");
-    sheet.addColorStop(0.35, "rgba(145, 126, 255, .12)");
-    sheet.addColorStop(1, "rgba(0, 0, 0, 0)");
-    layerCtx.globalAlpha = 1;
-    layerCtx.fillStyle = sheet;
-    layerCtx.fillRect(0, 0, width, height);
-
-    if (bolt.secondary) strokeBolt(layerCtx, bolt.secondary, 0.5, 0.65);
-    strokeBolt(layerCtx, bolt.main, 1, 1);
-    bolt.branches.forEach((branch) => strokeBolt(layerCtx, branch.points, 0.74, branch.weight));
-  };
-
-  const draw = (alpha) => {
-    ctx.clearRect(0, 0, width, height);
-    if (alpha <= 0.01 || !bolt) return;
-    ctx.globalAlpha = alpha;
-    ctx.drawImage(layer, 0, 0, width, height);
-    ctx.globalAlpha = 1;
-  };
 
   const schedule = (delay) => {
     clearTimeout(stormTimer);
@@ -664,35 +567,21 @@ function startStorm() {
         return;
       }
 
-      bolt = makeBolt(width, height);
-      render();
+      const rect = storm.getBoundingClientRect();
+      if (!rect.width || !rect.height) {
+        schedule(2600);
+        return;
+      }
+
+      storm.innerHTML = lightningSvg(rect.width, rect.height);
       landing.classList.remove("is-storm");
       void landing.offsetWidth;
       landing.classList.add("is-storm");
       clearTimeout(stormFlashTimer);
       stormFlashTimer = window.setTimeout(() => {
         if (run === stormRun) landing.classList.remove("is-storm");
-      }, 1020);
-
-      const started = performance.now();
-      const duration = 780;
-      let lastPaint = 0;
-      const frame = (now) => {
-        if (run !== stormRun) return;
-        const time = now - started;
-        if (time - lastPaint >= 28) {
-          draw(strikeAlpha(time));
-          lastPaint = time;
-        }
-        if (time < duration) {
-          stormRaf = requestAnimationFrame(frame);
-        } else {
-          ctx.clearRect(0, 0, width, height);
-          stormRaf = 0;
-        }
-      };
-      stormRaf = requestAnimationFrame(frame);
-      schedule(5400 + Math.random() * 4800);
+      }, 1950);
+      schedule(5200 + Math.random() * 4200);
     }, delay);
   };
 
@@ -700,10 +589,7 @@ function startStorm() {
     if (document.hidden) {
       clearTimeout(stormTimer);
       clearTimeout(stormFlashTimer);
-      if (stormRaf) cancelAnimationFrame(stormRaf);
-      stormRaf = 0;
       landing.classList.remove("is-storm");
-      ctx.clearRect(0, 0, width, height);
     } else if (run === stormRun) {
       schedule(1800 + Math.random() * 1400);
     }
@@ -720,7 +606,7 @@ function landingView() {
     <div class="landing-art" aria-hidden="true"></div>
     <div class="landing-aura" aria-hidden="true"></div>
     <div class="landing-embers" aria-hidden="true">${embers()}</div>
-    <div class="storm" aria-hidden="true"><canvas class="storm-canvas"></canvas></div>
+    <div class="storm" aria-hidden="true"></div>
     <div class="landing-inner">
       ${omenMark()}
       <p class="landing-kicker">We are</p>
